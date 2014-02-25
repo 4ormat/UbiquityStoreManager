@@ -711,9 +711,12 @@ extern NSString *NSStringFromUSMCause(UbiquityStoreErrorCause cause) {
         [self log:@"Cannot load cloud store: User is not logged into iCloud.  Falling back to local store."];
         cloudEnabled = NO;
 
-        if (!self.cloudWasEnabled)
+        if (!self.cloudWasEnabled) {
+            self.cloudEnabled = NO;
+
             // Cloud was disabled and can't enable it, we don't need to reload: the local store is already active.
             return;
+        }
     }
 
     // Load the requested store.  If the cloud store fails to load, mark it corrupt so we can try to recover it.
