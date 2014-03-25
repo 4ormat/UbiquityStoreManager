@@ -230,3 +230,7 @@ Any store migration can be performed by one of four strategies:
 `UbiquityStoreManager` is licensed under the [Apache License, Version 2.0](https://github.com/lhunath/UbiquityStoreManager/blob/master/LICENSE).
 
 Feel free to use it in any of your applications.  I’m also happy to receive any comments, feedback or review any pull requests.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/lhunath/ubiquitystoremanager/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
