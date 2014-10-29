@@ -152,7 +152,6 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
 @property(nonatomic, strong) USMLocalStoreFilePresenter *storeFilePresenter;
 @property(nonatomic, strong) USMStoreUUIDPresenter *storeUUIDPresenter;
 @property(nonatomic, strong) USMCorruptedUUIDPresenter *corruptedUUIDPresenter;
-@property(nonatomic, assign) BOOL cloudAvailable;
 @property(nonatomic, strong) NSBlockOperation *finishedLoadingOperation;
 
 @end
@@ -208,7 +207,6 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
     // Private vars.
     _currentIdentityToken = [[NSFileManager defaultManager] respondsToSelector:@selector(ubiquityIdentityToken)]?
                             [[NSFileManager defaultManager] ubiquityIdentityToken]: nil;
-    _cloudAvailable = (_currentIdentityToken != nil);
     _migrationStrategy = &NSPersistentStoreUbiquitousContainerIdentifierKey?
                          UbiquityStoreMigrationStrategyIOS: UbiquityStoreMigrationStrategyCopyEntities;
     _persistentStorageQueue = [NSOperationQueue new];
@@ -493,6 +491,9 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
 - (NSDictionary *)enumerateCloudStores {
 
     NSURL *cloudContentDirectory = [self URLForCloudContentDirectory];
+    if (!cloudContentDirectory)
+        return nil;
+
     NSError *error = nil;
     NSArray *cloudContentURLs = [[NSFileManager defaultManager]
             contentsOfDirectoryAtURL:cloudContentDirectory includingPropertiesForKeys:nil
@@ -724,13 +725,18 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
 
     // If user is not logged into iCloud, don't try to cloud cloud store: It will fail and not due to corruption.
     BOOL cloudEnabled = self.cloudEnabled;
-    if (cloudEnabled && ![[NSFileManager defaultManager] ubiquityIdentityToken]) {
+    if (cloudEnabled && !self.cloudAvailable) {
         [self log:@"Cannot load cloud store: User is not logged into iCloud.  Falling back to local store."];
-        cloudEnabled = NO;
-
         if (self.enabledStore == USMEnabledStoreLocal)
                 // The local store is already active.
             return;
+
+        if ([self.delegate respondsToSelector:@selector(ubiquityStoreManagerHandleCloudDisabled:)] &&
+            [self.delegate ubiquityStoreManagerHandleCloudDisabled:self])
+            // Handled by application.
+            return;
+
+        cloudEnabled = NO;
     }
 
     // Load the requested store.  If the cloud store fails to load, mark it corrupt so we can try to recover it.
@@ -751,7 +757,7 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
     [self assertQueued];
 
     // Check if the user is logged into iCloud on the device.
-    if (![[NSFileManager defaultManager] ubiquityIdentityToken]) {
+    if (!self.cloudAvailable) {
         [self log:@"Could not load cloud store: User is not logged into iCloud."];
         return NO;
     }
@@ -1750,6 +1756,11 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
     return confirmation;
 }
 
+- (BOOL)cloudAvailable {
+
+    return self.currentIdentityToken != nil;
+}
+
 /**
  * Contrary to -storeUUID, this method can return nil, in which case a cloud UUID has not yet been established.
  */
@@ -2148,7 +2159,6 @@ typedef NS_ENUM(NSUInteger, USMEnabledStore) {
     if (![self.currentIdentityToken isEqual:newIdentityToken] || (self.currentIdentityToken == nil && newIdentityToken)) {
         [self log:@"Identity token changed: %@ -> %@", self.currentIdentityToken, newIdentityToken];
         self.currentIdentityToken = newIdentityToken;
-        self.cloudAvailable = (self.currentIdentityToken != nil);
     }
 
     // If the cloud store was active, reload it.

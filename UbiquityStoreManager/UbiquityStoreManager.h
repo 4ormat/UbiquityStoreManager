@@ -255,6 +255,9 @@ __attribute__((deprecated));
 @optional
 - (BOOL)ubiquityStoreManager:(UbiquityStoreManager *)manager handleCloudContentCorruptionWithHealthyStore:(BOOL)storeHealthy;
 
+@optional
+- (BOOL)ubiquityStoreManagerHandleCloudDisabled:(UbiquityStoreManager *)manager;
+
 /** Triggered when the cloud content is deleted while cloud is enabled.
  *
  * When the cloud store is deleted, it may be that the user has deleted his cloud data for the app from one of his devices.
@@ -555,7 +558,8 @@ __attribute__((deprecated));
  * It allows you to provide an emergency store switcher to your app, allowing people to revert to old stores
  * in case they unexpectedly switch to a new cloud store without having migrating the content they want.
  *
- * @return A dictionary that maps cloud store URLs to an array of options dictionaries that can be used to load them.
+ * @return A dictionary that maps cloud store URLs to an array of options dictionaries that can be used to load them,
+ * or nil if iCloud is currently not enabled.
  */
 - (NSDictionary *)enumerateCloudStores;
 
